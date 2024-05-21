@@ -1,25 +1,85 @@
 import streamlit as st
+import configparser
 from snowflake.snowpark import Session
+from snowflake.connector.errors import ProgrammingError
 import pandas as pd
+import base64
+import os 
 
-# Snowflake connection parameters
-connection_params = {
-    "account": "AUB66911.us-east-1",
-    "USER": "avinashreddy508",
-    "PASSWORD": "Yojith@2016",
-    "ROLE": "ACCOUNTADMIN",
-    "WAREHOUSE": "COMPUTE_WH",
-    "DATABASE": "DEMO_DB",
-    "SCHEMA": "PUBLIC"
-}
-session = Session.builder.configs(connection_params).create()
-st.write("Connected to Snowflake")
+
+st.set_page_config(
+    page_title="MindEase App",
+    page_icon="🧊",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        'About': "# This is a header. This is an *MindEase* cool app!"
+    }
+)
 
 pd.set_option("max_colwidth", None)
+
+def intro():
+
+    st.image("2.png", width=150)
+
+    st.title("# Welcome to MindEase! 👋")
+
+    #st.subheader("Prevalence:Mental health disorders are prevalent in the United States, with an estimated 1 in 5 adults experiencing a mental illness each year.",divider='rainbow')
+
+    st.subheader("Prevalence:")
+    st.markdown("Mental health disorders are prevalent in the United States, with an estimated 1 in 5 adults experiencing a mental illness each year.")
+    
+    st.subheader("Specific Disorders:")
+    st.markdown("Anxiety disorders are the most common mental illness in the U.S., affecting 40 million adults aged 18 and older, or about 18.1% of the population every year. Major depressive disorder affects approximately 17.3 million adults, or about 7.1% of the U.S. population.  Bipolar disorder affects approximately 4.4% of adults in the U.S. at some point in their lives.Schizophrenia affects about 1.1% of the U.S. adult population.")
+    
+    st.subheader("Children and Adolescents:")
+    st.markdown("Approximately 7.7% of children aged 3-17 years (about 4.5 million) have diagnosed anxiety, while 3.2% (about 1.9 million) have diagnosed depression.Half of all lifetime cases of mental illness begin by age 14, and 75% by age 24.")
+    
+    st.subheader("Treatment Gap:")
+    st.markdown("Despite the high prevalence of mental health conditions, nearly 60% of adults and nearly 50% of children aged 6-17 with a mental illness did not receive mental health services in the previous year.Cost, lack of access to care, stigma, and shortage of mental health professionals are significant barriers to accessing treatment.")
+    
+    st.subheader("Substance Abuse:")
+    st.markdown("Mental health disorders often co-occur with substance abuse disorders. In 2019, 9.5% of adults (aged 18 and older) had a substance use disorder (SUD) in the past year, including 14.5 million adults with an alcohol use disorder and 8.8 million with an illicit drug use disorder.")
+    
+    st.subheader("Suicide:")
+    st.markdown("Suicide is a leading cause of death in the United States. In 2019, there were 47,511 recorded suicides, making it the 10th leading cause of death overall.Suicide rates are highest among American Indian and Alaska Native populations, followed by white populations.")
+    
+    st.markdown("These statistics highlight the significant impact of mental health disorders in the United States and the importance of increasing access to mental health services, reducing stigma, and promoting mental wellness across all age groups")
+
 
 ### Default Values
 num_chunks = 4  # Num-chunks provided as context. Play with this to check how it affects your accuracy
 slide_window = 7  # how many last conversations to remember. This is the slide window.
+
+# Snowflake connection parameters
+config = configparser.ConfigParser()
+config.read('properties.ini')
+
+snowflake_config = config['Snowflake']
+
+user = snowflake_config.get('user')
+password = snowflake_config.get('password')
+account = snowflake_config.get('account')
+role = snowflake_config.get('role')
+warehouse = snowflake_config.get('warehouse')
+database = snowflake_config.get('database')
+schema = snowflake_config.get('schema')
+
+connection_params = {
+    'account': account,
+    'user': user,
+    'password': password,
+    'role': role,
+    'warehouse': warehouse,
+    'database': database,
+    'schema': schema
+}
+
+
+session = Session.builder.configs(connection_params).create()
+#st.write("Connected to Snowflake")
+
 
 ### Functions
 
@@ -38,7 +98,11 @@ def initialize_session_state():
 def main():
     initialize_session_state()
     
-    st.title(f":speech_balloon: Chat Document Assistant with Snowflake Cortex")
+    #st.title(f":speech_balloon: Chat Document Assistant with Snowflake Cortex")
+    #st.write("This is the list of documents you already have and that will be used to answer your questions:")
+
+    st.image("2.png", width=150)
+    st.title(f":speech_balloon: Introducing MindEase, your 24/7 mental health companion Document Assistant with Snowflake Cortex")
     st.write("This is the list of documents you already have and that will be used to answer your questions:")
     
     docs_available = session.sql("ls @docs").collect()
@@ -223,5 +287,14 @@ def complete(myquestion):
     df_response = session.sql(cmd, params=[st.session_state.model_name, prompt]).collect()
     return df_response
 
-if __name__ == "__main__":
-    main()
+page_names_to_funcs = {
+    "Home": intro,
+    "Chat": main
+}
+
+demo_name = st.sidebar.selectbox("Navigate MindEase", page_names_to_funcs.keys())
+page_names_to_funcs[demo_name]()
+
+
+#if __name__ == "__main__":
+#    main()
